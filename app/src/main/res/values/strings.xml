@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">ViMusic</string>
+    <string name="widget_description">Playback controls on the home screen</string>
+    <string name="widget_artwork">Album artwork</string>
+    <string name="widget_previous">Previous track</string>
+    <string name="widget_play_pause">Play or pause</string>
+    <string name="widget_next">Next track</string>
+</resources>

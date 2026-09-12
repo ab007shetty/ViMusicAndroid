@@ -1,0 +1,3 @@
+<resources>
+    <string name="volume_key_service_description">Lets you skip tracks by holding a volume button even when nothing is playing. ViMusic only watches the volume keys \u2014 it never reads screen content.</string>
+</resources>

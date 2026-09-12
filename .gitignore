@@ -1,0 +1,52 @@
+# Secrets — Supabase keys and the Google OAuth client id live here
+local.properties
+
+# Signing keys. The release keystore is the single thing that cannot be
+# replaced: publish it and anyone can build an APK Android accepts as an
+# update to this one, inheriting its data and its permissions. Losing it is
+# almost as bad -- no future build can ever update an installed copy. Keep it
+# backed up somewhere private, and never here.
+keystore/
+*.jks
+*.keystore
+
+# Gradle / Android build output
+.gradle/
+build/
+captures/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Kotlin compiler session scratch
+.kotlin/
+
+# Local agent working files (SDD ledger, briefs, review packages)
+.superpowers/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# JVM crash dumps
+hs_err_pid*.log
+replay_pid*.log
+
+# Database dumps — real user data, never commit
+backups/
+
+# Archived builds. Kept locally so old versions are identifiable; the
+# published copies live on GitHub releases, not in the repository.
+releases/
+
+# Heap dumps from profiling runs
+*.hprof
