@@ -38,8 +38,6 @@ class MusicService : MediaLibraryService() {
 
     private val embedded by lazy {
         val host = iframeHost.get()
-
-        host.attachToOwnWindow(this)
         com.abshetty.vimusic.core.media.embedded.EmbeddedPlayer(host = host, scope = scope)
     }
     private var session: MediaLibrarySession? = null
@@ -187,6 +185,7 @@ class MusicService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        iframeHost.releaseHost()
         flushPlayTime()
         audioEffects.release()
         scope.cancel()

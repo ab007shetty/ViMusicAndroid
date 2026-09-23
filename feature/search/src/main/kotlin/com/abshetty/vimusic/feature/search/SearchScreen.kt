@@ -272,27 +272,31 @@ fun SearchScreen(
             state.items.isEmpty() &&
                 (state.query.isBlank() || state.suggestions.isNotEmpty()) -> {
                 LazyColumn(Modifier.fillMaxSize()) {
-                    items(state.history, key = { "history:" + it }) { entry ->
-                        QueryRow(
-                            query = entry,
-                            icon = Icons.Rounded.History,
-                            onTap = {
-                                viewModel.setQuery(entry)
-                                viewModel.submit(entry)
-                            },
-                            onForget = { viewModel.forgetQuery(entry) },
-                        )
-                    }
-
-                    items(state.suggestions, key = { "suggestion:" + it }) { entry ->
-                        QueryRow(
-                            query = entry,
-                            icon = Icons.Rounded.Search,
-                            onTap = {
-                                viewModel.setQuery(entry)
-                                viewModel.submit(entry)
-                            },
-                        )
+                    if (state.query.isBlank()) {
+                        items(state.history, key = { "history:" + it }) { entry ->
+                            QueryRow(
+                                query = entry,
+                                icon = Icons.Rounded.History,
+                                onTap = {
+                                    keyboard?.hide()
+                                    viewModel.setQuery(entry)
+                                    viewModel.submit(entry)
+                                },
+                                onForget = { viewModel.forgetQuery(entry) },
+                            )
+                        }
+                    } else {
+                        items(state.suggestions, key = { "suggestion:" + it }) { entry ->
+                            QueryRow(
+                                query = entry,
+                                icon = Icons.Rounded.Search,
+                                onTap = {
+                                    keyboard?.hide()
+                                    viewModel.setQuery(entry)
+                                    viewModel.submit(entry)
+                                },
+                            )
+                        }
                     }
                 }
             }

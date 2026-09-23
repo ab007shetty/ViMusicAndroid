@@ -103,6 +103,8 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.animation.animateColorAsState
 
 @Composable
 fun FullPlayer(
@@ -531,15 +533,12 @@ fun FullPlayer(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = viewModel::toggleShuffle) {
-                    Icon(
-                        Icons.Rounded.Shuffle,
-                        contentDescription = "Shuffle",
-                        tint = if (state.shuffle) colorPalette.accent
-                        else colorPalette.textDisabled,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
+                ModeToggle(
+                    icon = Icons.Rounded.Shuffle,
+                    label = "Shuffle",
+                    active = state.shuffle,
+                    onClick = viewModel::toggleShuffle,
+                )
                 IconButton(onClick = viewModel::previous) {
                     Icon(
                         Icons.Rounded.SkipPrevious,
@@ -557,20 +556,50 @@ fun FullPlayer(
                         modifier = Modifier.size(24.dp),
                     )
                 }
-                IconButton(onClick = viewModel::cycleRepeat) {
-                    Icon(
-                        imageVector = if (state.repeatMode == Player.REPEAT_MODE_ONE) {
-                            Icons.Rounded.RepeatOne
-                        } else Icons.Rounded.Repeat,
-                        contentDescription = "Repeat",
-                        tint = if (state.repeatMode == Player.REPEAT_MODE_OFF) {
-                            colorPalette.textDisabled
-                        } else colorPalette.accent,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
+                ModeToggle(
+                    icon = if (state.repeatMode == Player.REPEAT_MODE_ONE) {
+                        Icons.Rounded.RepeatOne
+                    } else Icons.Rounded.Repeat,
+                    label = "Repeat",
+                    active = state.repeatMode != Player.REPEAT_MODE_OFF,
+                    onClick = viewModel::cycleRepeat,
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun ModeToggle(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    active: Boolean,
+    onClick: () -> Unit,
+) {
+    val (colorPalette, _) = LocalAppearance.current
+    val background by animateColorAsState(
+        if (active) colorPalette.accent else Color.Transparent,
+        label = "modeBackground",
+    )
+    val tint by animateColorAsState(
+        if (active) colorPalette.onAccent else colorPalette.textDisabled,
+        label = "modeTint",
+    )
+
+    Box(
+        Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(background)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = tint,
+            modifier = Modifier.size(22.dp),
+        )
     }
 }
 

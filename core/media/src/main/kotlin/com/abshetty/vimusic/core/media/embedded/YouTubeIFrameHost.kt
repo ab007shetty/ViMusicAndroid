@@ -41,6 +41,10 @@ class YouTubeIFrameHost(context: Context) {
 
     private val pending = mutableListOf<() -> Unit>()
 
+    @Volatile private var attempt = 0
+    @Volatile private var reloading = false
+    @Volatile private var lastRequest: Pair<String, Long>? = null
+
     private val container: android.widget.FrameLayout =
         object : android.widget.FrameLayout(context) {}.apply {
             setBackgroundColor(android.graphics.Color.BLACK)
@@ -119,12 +123,40 @@ class YouTubeIFrameHost(context: Context) {
                 )
             }
 
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?,
+            ): Boolean {
+                val url = request?.url ?: return false
+                if (url.host == HOST) return false
+                if (request.isForMainFrame) {
+                    Log.w(TAG, "blocked top-frame navigation to " + url)
+                    return true
+                }
+                return false
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: android.webkit.WebResourceError?,
+            ) {
+                if (request?.isForMainFrame == true) recover("the player page failed to load")
+            }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 Log.i(TAG, "page finished: " + url)
+                if (url != null && android.net.Uri.parse(url).host != HOST) return
+
                 pageLoaded = true
                 val queued = pending.toList()
                 pending.clear()
                 queued.forEach { it() }
+
+                if (reloading) {
+                    reloading = false
+                    lastRequest?.let { (id, startMs) -> play(id, startMs) }
+                }
             }
         }
     }
@@ -135,7 +167,13 @@ class YouTubeIFrameHost(context: Context) {
 
         @JavascriptInterface
         fun onReady() {
+            attempt = 0
             _status.value = _status.value.copy(ready = true)
+        }
+
+        @JavascriptInterface
+        fun onApiUnavailable() {
+            webView.post { recover("the YouTube player script never loaded") }
         }
 
         @JavascriptInterface
@@ -191,6 +229,32 @@ class YouTubeIFrameHost(context: Context) {
         webView.loadUrl(PAGE_URL)
     }
 
+    private fun ensureWindow() {
+        if (!windowAttached) attachToOwnWindow(container.context)
+    }
+
+    private fun recover(reason: String) {
+        when (val next = recoveryFor(attempt)) {
+            is Recovery.GiveUp -> {
+                Log.w(TAG, "giving up after " + attempt + " reloads: " + reason)
+                _status.value = _status.value.copy(
+                    error = next.message,
+                    state = EmbeddedState.IDLE,
+                )
+            }
+
+            is Recovery.Reload -> {
+                Log.w(TAG, "reloading player (" + next.attempt + "): " + reason)
+                attempt = next.attempt
+                reloading = true
+                pageLoaded = false
+                pending.clear()
+                webView.clearCache(false)
+                webView.loadUrl(PAGE_URL)
+            }
+        }
+    }
+
     private fun watchForegroundState(context: Context) {
         if (foregroundWatched) return
         val app = context.applicationContext as? android.app.Application ?: return
@@ -232,6 +296,8 @@ class YouTubeIFrameHost(context: Context) {
 
     fun play(videoId: String, startMs: Long = 0) {
         Log.i(TAG, "load " + videoId + " at " + startMs + "ms")
+        ensureWindow()
+        lastRequest = videoId to startMs
         seekTargetMs = null
         _status.value = _status.value.copy(
             videoId = videoId,
@@ -245,7 +311,10 @@ class YouTubeIFrameHost(context: Context) {
         call("load('" + videoId.escaped() + "', " + (startMs / 1000.0) + ");")
     }
 
-    fun resume() = call("resume();")
+    fun resume() {
+        ensureWindow()
+        call("resume();")
+    }
     fun pause() = call("pauseIt();")
     fun seekTo(positionMs: Long) {
         seekTargetMs = positionMs
@@ -451,8 +520,17 @@ class YouTubeIFrameHost(context: Context) {
               var wantId = null;
               var wantPlay = true;
 
+              var apiWatchdog = setTimeout(function () {
+                if (!apiReady) $BRIDGE.onApiUnavailable();
+              }, 8000);
+
+              function apiFailed() {
+                if (!apiReady) $BRIDGE.onApiUnavailable();
+              }
+
               function onYouTubeIframeAPIReady() {
                 $BRIDGE.log('api ready');
+                clearTimeout(apiWatchdog);
                 apiReady = true;
                 if (queued) { var q = queued; queued = null; create(q.id, q.start); }
               }
@@ -464,7 +542,7 @@ class YouTubeIFrameHost(context: Context) {
                   height: '100%', width: '100%',
                   videoId: id,
                   playerVars: {
-                    autoplay: 1, controls: 1, enablejsapi: 1, rel: 0,
+                    autoplay: 1, controls: 0, enablejsapi: 1, rel: 0,
                     modestbranding: 1, fs: 1, playsinline: 1,
                     iv_load_policy: 3, cc_load_policy: 0,
                     start: Math.floor(start || 0),
@@ -508,7 +586,7 @@ class YouTubeIFrameHost(context: Context) {
                 } catch (e) {}
               }, 250);
             </script>
-            <script src="https://www.youtube.com/iframe_api"></script>
+            <script src="https://www.youtube.com/iframe_api" onerror="apiFailed()"></script>
             </body></html>
         """.trimIndent()
     }

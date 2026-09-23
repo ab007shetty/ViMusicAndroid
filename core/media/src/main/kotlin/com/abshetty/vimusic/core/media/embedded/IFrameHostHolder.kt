@@ -23,6 +23,12 @@ class IFrameHostHolder @Inject constructor(
 
     fun peek(): YouTubeIFrameHost? = host
 
+    fun releaseHost() = synchronized(this) {
+        host?.release()
+        host = null
+        statusRelay.value = null
+    }
+
     private val statusRelay = MutableStateFlow<EmbeddedStatus?>(null)
 
     val statusOrNull: StateFlow<EmbeddedStatus?> = statusRelay.asStateFlow()
