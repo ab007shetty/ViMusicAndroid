@@ -33,7 +33,6 @@ data class LibraryUiState(
     val playlists: List<Playlist> = emptyList(),
     val activePlaylistId: Long? = null,
     val isOnline: Boolean = true,
-    val offlineCount: Int = 0,
 
     val isGuest: Boolean = false,
 
@@ -160,7 +159,6 @@ class LibraryViewModel @Inject constructor(
             },
             activePlaylistId = pid,
             isOnline = online,
-            offlineCount = list.count { it.isPlayableOffline },
             isGuest = guest,
 
             isLoading = !authResolved || listKey(tab, pid) !in loaded ||

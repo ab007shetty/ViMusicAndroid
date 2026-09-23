@@ -427,12 +427,7 @@ class YouTubeIFrameHost(context: Context) {
         }
 
         val reveal = {
-            updateWindow {
-                it.alpha = 1f
-
-                it.flags = it.flags and
-                    android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
-            }
+            updateWindow { it.alpha = 1f }
         }
 
         if (moved && hidden) container.post(reveal) else reveal()
@@ -512,7 +507,7 @@ class YouTubeIFrameHost(context: Context) {
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
               html,body{margin:0;padding:0;background:#000;height:100%;overflow:hidden}
-              #player{width:100%;height:100%}
+              #player{width:100%;height:100%;pointer-events:none}
             </style></head>
             <body><div id="player"></div>
             <script>
@@ -544,23 +539,41 @@ class YouTubeIFrameHost(context: Context) {
                   playerVars: {
                     autoplay: 1, controls: 0, enablejsapi: 1, rel: 0,
                     modestbranding: 1, fs: 1, playsinline: 1,
-                    iv_load_policy: 3, cc_load_policy: 0,
+                    iv_load_policy: 3, cc_load_policy: 1,
                     start: Math.floor(start || 0),
                     origin: window.location.origin
                   },
                   events: {
                     onReady: function () {
                       playerReady = true;
+                      maxQuality();
+                      showCaptions();
                       $BRIDGE.onReady();
                       if (wantPlay) player.playVideo(); else player.pauseVideo();
                     },
                     onStateChange: function (e) {
+                      if (e.data === 1) maxQuality();
                       if (e.data === 0) { try { player.stopVideo(); } catch (x) {} }
                       $BRIDGE.onState(e.data);
                     },
                     onError: function (e) { $BRIDGE.onError(e.data); }
                   }
                 });
+              }
+
+              function showCaptions() {
+                try {
+                  player.loadModule('captions');
+                  player.loadModule('cc');
+                } catch (e) {}
+              }
+
+              function maxQuality() {
+                try {
+                  var levels = player.getAvailableQualityLevels
+                    ? player.getAvailableQualityLevels() : [];
+                  player.setPlaybackQuality(levels && levels.length ? levels[0] : 'highres');
+                } catch (e) {}
               }
 
               function load(id, start) {

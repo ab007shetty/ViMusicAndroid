@@ -33,7 +33,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
-import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Search
@@ -272,28 +271,6 @@ fun LibraryScreen(
                     )
                 }
 
-                if (!state.isOnline) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .background(colorPalette.background2)
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        androidx.compose.material3.Icon(
-                            Icons.Rounded.CloudOff,
-                            contentDescription = null,
-                            tint = colorPalette.textSecondary,
-                        )
-                        Text(
-                            "Offline - ${state.offlineCount} songs available",
-                            style = typography.xxs.medium,
-                            color = colorPalette.textSecondary,
-                        )
-                    }
-                }
-
                 val showingPlaylistGrid =
                     state.activeTab == LibraryTab.PLAYLISTS && state.activePlaylistId == null
 
@@ -510,7 +487,8 @@ private fun emptyTextFor(state: LibraryUiState): String = when {
     state.activeTab == LibraryTab.LOCAL ->
         "No audio files in " + (state.localFolderName ?: "that folder") +
             ". Use the folder button to pick another."
-    !state.isOnline -> "Nothing downloaded yet. Songs you play are cached automatically."
+    !state.isOnline ->
+        "You are offline. Connect to the internet, or play music from the Local tab."
     state.query.isNotBlank() -> "No songs match \"${state.query}\""
     else -> "Nothing here yet. Search for something to play."
 }
